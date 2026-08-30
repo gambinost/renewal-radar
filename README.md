@@ -91,4 +91,4 @@ uv run pytest
 
 ## Deployed version
 
-https://TODO-add-streamlit-community-cloud-url-here.streamlit.app
+https://renewal-radar-2v6sj6w3m5nte4etpthnko.streamlit.app/
