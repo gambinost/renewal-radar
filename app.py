@@ -6,12 +6,16 @@ wrangling for the end user.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 
 from renewal_radar.loading import load_billing_csv, load_project_csv
 from renewal_radar.pipeline import build_report
 
 st.set_page_config(page_title="Renewal Radar", layout="wide")
+
+SAMPLE_DATA_DIR = Path(__file__).parent / "data"
 
 DISPLAY_COLUMNS = {
     "client_name": "Client",
@@ -31,21 +35,35 @@ st.caption(
     "renewal in the next 45 days."
 )
 
-col1, col2 = st.columns(2)
-with col1:
-    billing_file = st.file_uploader("Billing export (CSV)", type="csv")
-with col2:
-    project_file = st.file_uploader("Project export (CSV)", type="csv")
+# Defaults to the bundled sample so a first-time visitor (e.g. a judge) sees
+# a populated report immediately, with zero clicks and no repo to dig
+# through — uploading real exports is one click away, not the only path in.
+data_source = st.radio(
+    "Data source",
+    ["Use sample data", "Upload my own CSVs"],
+    horizontal=True,
+)
 
-if not billing_file or not project_file:
-    st.info("Upload both CSVs to see the renewal report.")
-    st.stop()
+if data_source == "Use sample data":
+    st.caption("Using the sample exports bundled with this app (see `data/` in the repo).")
+    billing_df = load_billing_csv(SAMPLE_DATA_DIR / "billing_export.csv")
+    project_df = load_project_csv(SAMPLE_DATA_DIR / "project_export.csv")
+else:
+    col1, col2 = st.columns(2)
+    with col1:
+        billing_file = st.file_uploader("Billing export (CSV)", type="csv")
+    with col2:
+        project_file = st.file_uploader("Project export (CSV)", type="csv")
 
-# A fresh upload starts every match unconfirmed again — confirmations are a
-# session convenience for reviewing this run's data, not a saved decision
-# that should silently carry over to a different (or re-edited) export.
-billing_df = load_billing_csv(billing_file)
-project_df = load_project_csv(project_file)
+    if not billing_file or not project_file:
+        st.info("Upload both CSVs to see the renewal report.")
+        st.stop()
+
+    # A fresh upload starts every match unconfirmed again — confirmations
+    # are a session convenience for reviewing this run's data, not a saved
+    # decision that should silently carry over to a different export.
+    billing_df = load_billing_csv(billing_file)
+    project_df = load_project_csv(project_file)
 
 report = build_report(
     billing_df,
